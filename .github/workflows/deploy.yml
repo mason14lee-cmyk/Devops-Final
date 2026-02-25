@@ -10,38 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout your repo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Deploy to EC2
       - name: Deploy to EC2
         env:
-          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}   # Your private key
-          HOST: ${{ secrets.EC2_HOST }}           # EC2 public DNS
-          USER: ec2-user
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
         run: |
-          # Save the private key locally
+          # Save private key locally
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
 
-          # SSH into EC2 and deploy
-          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER}@${HOST} << 'EOF'
-            set -e  # Exit on error
-
-            echo "Navigating to repo..."
+          # SSH into EC2 and run commands
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@${HOST} "
             cd /home/ec2-user/Devops-Final
-
-            echo "Pulling latest changes..."
             git pull origin main
+            docker compose down
+            docker compose up -d
+          "
 
-            echo "Restarting Docker Compose..."
-            sudo docker compose down
-            sudo docker compose up -d
-
-            echo "Deployment complete!"
-EOF
-
-      # Step 3: Cleanup
       - name: Cleanup
         run: rm -f private_key.pem
