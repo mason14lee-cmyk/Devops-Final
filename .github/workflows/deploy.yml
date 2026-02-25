@@ -1,29 +1,44 @@
 name: Deploy to EC2
 
+# Trigger deployment on push to main branch
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Deploy to EC2
-      env:
-        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-        HOST: ec2-32-192-42-213.compute-1.amazonaws.com
-        USER: ec2-user
-      run: |
-        echo "$PRIVATE_KEY" > private_key.pem
-        chmod 600 private_key.pem
-        ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER}@${HOST} '
-        cd /home/ec2-user/Devops-Final &&
-        git pull origin main &&
-        docker compose down &&
-        docker compose up -d
-        '
-                        
+      # Step 1: Checkout the repo code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Deploy to EC2 via SSH
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}       # Store your EC2 private key as a GitHub Secret
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ec2-user
+        run: |
+          # Save the private key locally
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          # SSH into the EC2 instance and run deployment commands
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER}@${HOST} '
+            # Navigate to your repo directory
+            cd /home/ec2-user/Devops-Final || exit 1
+
+            # Pull latest changes from GitHub
+            git pull origin main
+
+            # Restart Docker Compose services
+            docker compose down
+            docker compose up -d
+          '
+
+      # Step 3 (optional cleanup): Remove private key from runner after use
+      - name: Cleanup
+        run: rm -f private_key.pem
