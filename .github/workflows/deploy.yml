@@ -15,7 +15,7 @@ jobs:
     - name: Deploy to EC2
       env:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-        HOST: ${{ secrets.EC2_HOST }}
+        HOST: ec2-32-192-42-213.compute-1.amazonaws.com
         USER: ec2-user
       run: |
         echo "$PRIVATE_KEY" > private_key.pem
